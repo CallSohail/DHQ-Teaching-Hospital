@@ -10,7 +10,67 @@
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background-color: #e9ecef;
+        }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
             display: flex;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            background-color: #e9ecef;
+        }
+        .login-box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 320px;
+        }
+        .login-box img {
+            width: 80px;
+            margin-bottom: 15px;
+        }
+        .login-box h2 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 22px;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 10px;
+            background: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .login-box button:hover {
+            background: #004494;
+        }
+        #login_error {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+            font-weight: bold;
+        }
+
+        /* --- MAIN APP WRAPPER --- */
+        #main-app {
+            display: none; /* Hidden until logged in */
             height: 100vh;
             overflow: hidden;
         }
@@ -62,7 +122,7 @@
             gap: 10px;
             margin-top: 10px;
         }
-        button {
+        .controls-panel button {
             flex: 1;
             padding: 10px;
             border: none;
@@ -76,9 +136,11 @@
         .btn-new:hover { background: #0056b3; }
         .btn-print { background: #28a745; }
         .btn-print:hover { background: #1e7e34; }
+        .btn-logout { background: #dc3545; margin-top: 10px;}
+        .btn-logout:hover { background: #c82333; }
 
         .history-section {
-            margin-top: 20px;
+            margin-top: 10px;
             border-top: 1px solid #eee;
             padding-top: 15px;
             display: flex;
@@ -97,7 +159,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
         }
         .history-item {
@@ -287,8 +349,9 @@
         /* --- PRINT STYLES --- */
         @media print {
             @page { size: A4; margin: 0; }
-            body { background: white; height: auto; overflow: visible; display: block; }
-            .controls-panel { display: none !important; }
+            body { background: white; display: block; }
+            #login-screen, .controls-panel { display: none !important; }
+            #main-app { display: block; height: auto; overflow: visible; }
             .preview-panel { padding: 0; overflow: visible; display: block; justify-content: flex-start; }
             .page-container { 
                 box-shadow: none; 
@@ -302,144 +365,198 @@
 </head>
 <body>
 
-    <div class="controls-panel no-print">
-        <h2>Enter Patient Details</h2>
-        
-        <div class="form-group">
-            <label>Slip Type</label>
-            <select id="input_slip_type" onchange="handleSlipTypeChange()">
-                <option value="OPD">OPD</option>
-                <option value="Casualty">Casualty</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Date & Time</label>
-            <input type="datetime-local" id="input_datetime" step="1" oninput="markTimeManual(); updatePreview()">
-        </div>
-
-        <div class="form-group">
-            <label>Patient Name</label>
-            <input type="text" id="input_name" placeholder="E.g. SULTANAT KHAN" oninput="updatePreview()">
-        </div>
-        <div class="form-group">
-            <label>Gender</label>
-            <select id="input_gender" onchange="updatePreview()">
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Address</label>
-            <input type="text" id="input_address" oninput="updatePreview()">
-        </div>
-        <div class="form-group">
-            <label>Shift</label>
-            <select id="input_shift" onchange="updatePreview()">
-                <option value="Morning">Morning</option>
-                <option value="Evening">Evening</option>
-                <option value="Night">Night</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Age</label>
-            <input type="number" id="input_age" value="0" oninput="updatePreview()">
-        </div>
-        <div class="form-group">
-            <label>CNIC</label>
-            <input type="text" id="input_cnic" placeholder="XXXXX-XXXXXXX-X" oninput="formatCNIC(this)">
-        </div>
-        <div class="form-group">
-            <label>Specialties</label>
-            <input type="text" id="input_specialties" value="Dental" oninput="updatePreview()">
-        </div>
-        <div class="form-group">
-            <label>Doctor Notes (Rx)</label>
-            <textarea id="input_rx" rows="5" placeholder="Type prescription or notes here..." oninput="updatePreview()"></textarea>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn-new" onclick="startNewSlip()">New Slip</button>
-            <button class="btn-print" onclick="saveAndPrint()">Print / PDF</button>
-        </div>
-
-        <div class="history-section">
-            <h2>Recent Slips</h2>
-            <input type="text" id="search_history" class="search-bar" placeholder="Search by name or MR NO..." oninput="renderHistory()">
-            <div class="history-list" id="historyList">
-                </div>
+    <div id="login-screen">
+        <div class="login-box">
+            <img src="https://i.ibb.co/4wttnWD3/download-removebg-preview.png" alt="Logo">
+            <h2>System Login</h2>
+            <input type="text" id="login_username" placeholder="Username">
+            <input type="password" id="login_password" placeholder="Password">
+            <button onclick="attemptLogin()">Log In</button>
+            <div id="login_error">Invalid Username or Password</div>
         </div>
     </div>
 
-    <div class="preview-panel">
-        <div class="page-container" id="printableArea">
-            <div class="rs-10">RS 10</div>
+    <div id="main-app">
+        <div class="controls-panel no-print">
+            <h2>Enter Patient Details</h2>
             
-            <div class="slip-border">
+            <div class="form-group">
+                <label>Slip Type</label>
+                <select id="input_slip_type" onchange="handleSlipTypeChange()">
+                    <option value="OPD">OPD</option>
+                    <option value="Casualty">Casualty</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Date & Time</label>
+                <input type="datetime-local" id="input_datetime" step="1" oninput="markTimeManual(); updatePreview()">
+            </div>
+
+            <div class="form-group">
+                <label>Patient Name</label>
+                <input type="text" id="input_name" placeholder="E.g. SULTANAT KHAN" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <select id="input_gender" onchange="updatePreview()">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="input_address" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+                <label>Shift</label>
+                <select id="input_shift" onchange="updatePreview()">
+                    <option value="Morning">Morning</option>
+                    <option value="Evening">Evening</option>
+                    <option value="Night">Night</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="input_age" value="0" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+                <label>CNIC</label>
+                <input type="text" id="input_cnic" placeholder="XXXXX-XXXXXXX-X" oninput="formatCNIC(this)">
+            </div>
+            <div class="form-group">
+                <label>Specialties</label>
+                <input type="text" id="input_specialties" value="Dental" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+                <label>Doctor Notes (Rx)</label>
+                <textarea id="input_rx" rows="4" placeholder="Type prescription or notes here..." oninput="updatePreview()"></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-new" onclick="startNewSlip()">New Slip</button>
+                <button class="btn-print" onclick="saveAndPrint()">Print / PDF</button>
+            </div>
+
+            <div class="history-section">
+                <h2>Recent Slips</h2>
+                <input type="text" id="search_history" class="search-bar" placeholder="Search by name or MR NO..." oninput="renderHistory()">
+                <div class="history-list" id="historyList"></div>
+            </div>
+
+            <button class="btn-logout" onclick="logout()">Log Out</button>
+        </div>
+
+        <div class="preview-panel">
+            <div class="page-container" id="printableArea">
+                <div class="rs-10">RS 10</div>
                 
-                <div class="header">
-                    <img src="https://i.ibb.co/4wttnWD3/download-removebg-preview.png" alt="Logo">
-                    <div class="header-text">
-                        <h1>DHQ Teaching Hospital Timergara</h1>
-                        <p><span id="preview_slip_title">OPD Slip</span> <span id="preview_datetime_container" style="display:none;">(<span id="preview_datetime"></span>)</span></p>
+                <div class="slip-border">
+                    <div class="header">
+                        <img src="https://i.ibb.co/4wttnWD3/download-removebg-preview.png" alt="Logo">
+                        <div class="header-text">
+                            <h1>DHQ Teaching Hospital Timergara</h1>
+                            <p><span id="preview_slip_title">OPD Slip</span> <span id="preview_datetime_container" style="display:none;">(<span id="preview_datetime"></span>)</span></p>
+                        </div>
+                    </div>
+
+                    <table class="info-table">
+                        <tr>
+                            <td class="label">Patient Name</td>
+                            <td class="value" id="preview_name"></td>
+                            <td class="label">Gender</td>
+                            <td class="value" id="preview_gender"></td>
+                        </tr>
+                        <tr>
+                            <td class="label">Address</td>
+                            <td class="value" id="preview_address"></td>
+                            <td class="label">Shift</td>
+                            <td class="value" id="preview_shift"></td>
+                        </tr>
+                        <tr>
+                            <td class="label">MR NO #</td>
+                            <td class="value" id="preview_mrno"></td>
+                            <td class="label">Age</td>
+                            <td class="value" id="preview_age"></td>
+                        </tr>
+                        <tr>
+                            <td class="label">CNIC</td>
+                            <td class="value" id="preview_cnic"></td>
+                            <td class="label">Specialties</td>
+                            <td class="value" id="preview_specialties"></td>
+                        </tr>
+                    </table>
+
+                    <div class="medical-area">
+                        <div class="left-labels">
+                            <div>Complaints:</div>
+                            <div>Physcical Examination:</div>
+                            <div>Investigation:</div>
+                            <div>Provisional Diagnosis:</div>
+                        </div>
+                        <div class="right-content">
+                            <h2>Rx</h2>
+                            <div class="rx-text" id="preview_rx"></div>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        <div class="doctor-sign">Doctor Sign</div>
                     </div>
                 </div>
-
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Patient Name</td>
-                        <td class="value" id="preview_name"></td>
-                        <td class="label">Gender</td>
-                        <td class="value" id="preview_gender"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Address</td>
-                        <td class="value" id="preview_address"></td>
-                        <td class="label">Shift</td>
-                        <td class="value" id="preview_shift"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">MR NO #</td>
-                        <td class="value" id="preview_mrno"></td>
-                        <td class="label">Age</td>
-                        <td class="value" id="preview_age"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">CNIC</td>
-                        <td class="value" id="preview_cnic"></td>
-                        <td class="label">Specialties</td>
-                        <td class="value" id="preview_specialties"></td>
-                    </tr>
-                </table>
-
-                <div class="medical-area">
-                    <div class="left-labels">
-                        <div>Complaints:</div>
-                        <div>Physcical Examination:</div>
-                        <div>Investigation:</div>
-                        <div>Provisional Diagnosis:</div>
-                    </div>
-                    <div class="right-content">
-                        <h2>Rx</h2>
-                        <div class="rx-text" id="preview_rx"></div>
-                    </div>
-                </div>
-
-                <div class="footer">
-                    <div class="doctor-sign">Doctor Sign</div>
-                </div>
-
             </div>
         </div>
     </div>
 
     <script>
-        // Track if user manually changed the time
-        let isManualTime = false;
+        // --- AUTHENTICATION LOGIC ---
+        const VALID_USER = "sudaiskhan";
+        const VALID_PASS = "SudaisKhan@321";
 
-        function markTimeManual() {
-            isManualTime = true;
+        function attemptLogin() {
+            const user = document.getElementById('login_username').value;
+            const pass = document.getElementById('login_password').value;
+
+            if (user === VALID_USER && pass === VALID_PASS) {
+                // Success
+                sessionStorage.setItem('dhq_logged_in', 'true');
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+                document.getElementById('login_error').style.display = 'none';
+                
+                // Initialize the app now that we are logged in
+                startNewSlip();
+                renderHistory();
+                startTimer();
+            } else {
+                // Fail
+                document.getElementById('login_error').style.display = 'block';
+            }
         }
+
+        function logout() {
+            sessionStorage.removeItem('dhq_logged_in');
+            document.getElementById('login_username').value = '';
+            document.getElementById('login_password').value = '';
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+        }
+
+        // Allow pressing "Enter" to log in
+        document.getElementById("login_password").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                attemptLogin();
+            }
+        });
+
+
+        // --- APP LOGIC ---
+        let isManualTime = false;
+        let currentMRNO = "";
+        let timerInterval;
+
+        function markTimeManual() { isManualTime = true; }
 
         function formatCNIC(input) {
             let val = input.value.replace(/\D/g, '');
@@ -454,7 +571,6 @@
         function handleSlipTypeChange() {
             const slipType = document.getElementById('input_slip_type').value;
             const prefix = slipType === 'Casualty' ? 'CASU' : 'OPD';
-            
             if (currentMRNO.startsWith('OPD') || currentMRNO.startsWith('CASU')) {
                 currentMRNO = currentMRNO.replace(/^(OPD|CASU)/, prefix);
             } else {
@@ -473,14 +589,12 @@
             return `${prefix}-${month}-${year}-${random}`;
         }
 
-        // Generates the time in a format the HTML <input type="datetime-local"> can read
         function getCurrentDateTimeLocal() {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            return now.toISOString().slice(0, 19); // Keep YYYY-MM-DDTHH:MM:SS
+            return now.toISOString().slice(0, 19); 
         }
 
-        // Formats the raw calendar value into the nice display style for the slip
         function formatDateTimeForSlip(val) {
             if (!val) return '';
             const d = new Date(val);
@@ -489,8 +603,6 @@
             const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
             return `${dateStr} ${timeStr}`;
         }
-
-        let currentMRNO = "";
 
         function startNewSlip() {
             isManualTime = false;
@@ -511,23 +623,20 @@
         }
 
         function updatePreview() {
-            // Update Title
             const slipType = document.getElementById('input_slip_type').value;
             document.getElementById('preview_slip_title').innerText = slipType === 'Casualty' ? 'Casualty Slip' : 'OPD Slip';
 
-            // Update Time - Handle Empty or Selected Calendar Date
             const rawTimeValue = document.getElementById('input_datetime').value;
             const timeContainer = document.getElementById('preview_datetime_container');
             const timeText = document.getElementById('preview_datetime');
             
             if (rawTimeValue.trim() === '') {
-                timeContainer.style.display = 'none'; // Hide parenthesis if empty
+                timeContainer.style.display = 'none'; 
             } else {
                 timeContainer.style.display = 'inline';
-                timeText.innerText = formatDateTimeForSlip(rawTimeValue); // Format it nicely
+                timeText.innerText = formatDateTimeForSlip(rawTimeValue); 
             }
 
-            // Update Fields
             document.getElementById('preview_name').innerText = document.getElementById('input_name').value;
             document.getElementById('preview_gender').innerText = document.getElementById('input_gender').value;
             document.getElementById('preview_address').innerText = document.getElementById('input_address').value;
@@ -536,14 +645,13 @@
             document.getElementById('preview_cnic').innerText = document.getElementById('input_cnic').value;
             document.getElementById('preview_specialties').innerText = document.getElementById('input_specialties').value;
             document.getElementById('preview_rx').innerText = document.getElementById('input_rx').value;
-            
             document.getElementById('preview_mrno').innerText = currentMRNO;
         }
 
         function saveAndPrint() {
             const slipData = {
                 id: currentMRNO,
-                date: document.getElementById('input_datetime').value, // Save raw calendar value
+                date: document.getElementById('input_datetime').value, 
                 type: document.getElementById('input_slip_type').value, 
                 name: document.getElementById('input_name').value,
                 gender: document.getElementById('input_gender').value,
@@ -601,7 +709,7 @@
         }
 
         function loadHistoryItem(item) {
-            isManualTime = true; // Lock the time so it doesn't auto-update to current
+            isManualTime = true; 
             document.getElementById('input_slip_type').value = item.type || 'OPD';
             document.getElementById('input_datetime').value = item.date || '';
             document.getElementById('input_name').value = item.name || '';
@@ -614,21 +722,33 @@
             document.getElementById('input_rx').value = item.rx || '';
             
             currentMRNO = item.id;
-            
             updatePreview();
         }
 
-        window.onload = function() {
-            startNewSlip();
-            renderHistory();
-            
-            // Auto update time only if user hasn't touched the calendar and hasn't started typing a name
-            setInterval(function() {
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(function() {
                 if(!isManualTime && document.getElementById('input_name').value.trim() === '') {
                     document.getElementById('input_datetime').value = getCurrentDateTimeLocal();
                     updatePreview();
                 }
             }, 1000);
+        }
+
+        // --- PAGE LOAD BEHAVIOR ---
+        window.onload = function() {
+            // Check if already logged in this session
+            if (sessionStorage.getItem('dhq_logged_in') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+                startNewSlip();
+                renderHistory();
+                startTimer();
+            } else {
+                // Stay on login screen
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('main-app').style.display = 'none';
+            }
         };
     </script>
 </body>
