@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHQ Hospital Timergara - OPD Generator</title>
+    <style>
+        /* --- GLOBAL STYLES --- */
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #e9ecef;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- LEFT PANEL (FORM CONTROLS) --- */
+        .controls-panel {
+            width: 400px;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+        .controls-panel h2 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            color: #333;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 5px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-new { background: #007bff; }
+        .btn-new:hover { background: #0056b3; }
+        .btn-print { background: #28a745; }
+        .btn-print:hover { background: #1e7e34; }
+
+        .history-section {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .search-bar {
+            padding: 8px;
+            border: 1px solid #aaa;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 8px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .history-item:hover { background: #e2e6ea; }
+
+        /* --- RIGHT PANEL (LIVE PREVIEW) --- */
+        .preview-panel {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        /* The Exact OPD Slip */
+        .page-container {
+            position: relative;
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            padding: 15mm;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+        }
+        
+        .rs-10 {
+            position: absolute;
+            top: 22px; 
+            right: 15mm;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* THE MAIN OUTER BOX */
+        .slip-border {
+            border: 1.5px solid #000;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            margin-top: 18px; 
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Header Layout */
+        .header {
+            position: relative;
+            display: flex; 
+            align-items: center; 
+            padding: 20px 25px; 
+            border-bottom: 1.5px solid #000; 
+            min-height: 70px;
+            box-sizing: border-box;
+        }
+        .header img {
+            width: 75px;
+            height: 75px;
+            object-fit: contain;
+            margin-right: 40px; 
+            flex-shrink: 0; 
+        }
+        .header-text {
+            flex-grow: 1; 
+            text-align: center; 
+            margin-right: 115px; 
+        }
+        .header-text h1 {
+            margin: 0;
+            font-size: 25px; 
+            font-weight: bold;
+            color: #000;
+            white-space: nowrap; 
+        }
+        .header-text p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Table Layout */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-bottom: 1.5px solid #000; 
+        }
+        .info-table td {
+            border: 1px solid #000;
+            padding: 12px 15px; 
+            font-size: 14px;
+            height: 35px;
+            color: #000;
+        }
+        .info-table tr td:first-child { border-left: none; }
+        .info-table tr td:last-child { border-right: none; }
+        .info-table tr:first-child td { border-top: none; }
+        .info-table tr:last-child td { border-bottom: none; }
+        
+        .info-table td.label {
+            font-weight: bold;
+            width: 22%;
+            color: #222;
+        }
+        .info-table td.value {
+            font-weight: bold;
+            width: 28%;
+            text-transform: uppercase;
+        }
+
+        /* Medical Area layout */
+        .medical-area {
+            display: flex;
+            flex-grow: 1;
+            margin-top: 10px; 
+        }
+        .left-labels {
+            width: 28%;
+            border-right: 1.5px solid #000; 
+            padding-left: 15px;
+            padding-right: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .left-labels div {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 110px; 
+        }
+        .left-labels div:first-child { margin-top: 5px; }
+        .left-labels div:last-child { margin-bottom: 0; }
+        
+        .right-content {
+            width: 72%;
+            padding-left: 20px; 
+            padding-right: 20px;
+            padding-top: 5px;
+            position: relative;
+        }
+        .right-content h2 {
+            margin: 0 0 15px 0;
+            font-size: 34px;
+            color: #000;
+            line-height: 1;
+        }
+        .rx-text {
+            font-size: 15px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* Footer Layout */
+        .footer {
+            height: 70px;
+            position: relative;
+            width: 100%;
+        }
+        .doctor-sign {
+            position: absolute;
+            bottom: 20px;
+            right: 25px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            border-top: 1px solid #000; 
+            padding-top: 5px;
+            width: 140px;
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { background: white; height: auto; overflow: visible; display: block; }
+            .controls-panel { display: none !important; }
+            .preview-panel { padding: 0; overflow: visible; display: block; justify-content: flex-start; }
+            .page-container { 
+                box-shadow: none; 
+                margin: 0; 
+                width: 210mm; 
+                height: 297mm; 
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls-panel no-print">
+        <h2>Enter Patient Details</h2>
+        
+        <div class="form-group">
+            <label>Patient Name</label>
+            <input type="text" id="input_name" placeholder="E.g. SULTANAT KHAN" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+            <label>Gender</label>
+            <select id="input_gender" onchange="updatePreview()">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Address</label>
+            <input type="text" id="input_address" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+            <label>Shift</label>
+            <select id="input_shift" onchange="updatePreview()">
+                <option value="Morning">Morning</option>
+                <option value="Evening">Evening</option>
+                <option value="Night">Night</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Age</label>
+            <input type="number" id="input_age" value="0" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+            <label>CNIC</label>
+            <input type="text" id="input_cnic" placeholder="XXXXX-XXXXXXX-X" oninput="formatCNIC(this)">
+        </div>
+        <div class="form-group">
+            <label>Specialties</label>
+            <input type="text" id="input_specialties" value="Dental" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+            <label>Doctor Notes (Rx)</label>
+            <textarea id="input_rx" rows="5" placeholder="Type prescription or notes here..." oninput="updatePreview()"></textarea>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-new" onclick="startNewSlip()">New Slip</button>
+            <button class="btn-print" onclick="saveAndPrint()">Print / PDF</button>
+        </div>
+
+        <div class="history-section">
+            <h2>Recent Slips</h2>
+            <input type="text" id="search_history" class="search-bar" placeholder="Search by name or MR NO..." oninput="renderHistory()">
+            <div class="history-list" id="historyList">
+                </div>
+        </div>
+    </div>
+
+    <div class="preview-panel">
+        <div class="page-container" id="printableArea">
+            <div class="rs-10">RS 10</div>
+            
+            <div class="slip-border">
+                
+                <div class="header">
+                    <img src="https://i.ibb.co/4wttnWD3/download-removebg-preview.png" alt="Logo">
+                    <div class="header-text">
+                        <h1>DHQ Teaching Hospital Timergara</h1>
+                        <p>OPD Slip (<span id="preview_datetime"></span>)</p>
+                    </div>
+                </div>
+
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Patient Name</td>
+                        <td class="value" id="preview_name"></td>
+                        <td class="label">Gender</td>
+                        <td class="value" id="preview_gender"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Address</td>
+                        <td class="value" id="preview_address"></td>
+                        <td class="label">Shift</td>
+                        <td class="value" id="preview_shift"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">MR NO #</td>
+                        <td class="value" id="preview_mrno"></td>
+                        <td class="label">Age</td>
+                        <td class="value" id="preview_age"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">CNIC</td>
+                        <td class="value" id="preview_cnic"></td>
+                        <td class="label">Specialties</td>
+                        <td class="value" id="preview_specialties"></td>
+                    </tr>
+                </table>
+
+                <div class="medical-area">
+                    <div class="left-labels">
+                        <div>Complaints:</div>
+                        <div>Physcical Examination:</div>
+                        <div>Investigation:</div>
+                        <div>Provisional Diagnosis:</div>
+                    </div>
+                    <div class="right-content">
+                        <h2>Rx</h2>
+                        <div class="rx-text" id="preview_rx"></div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <div class="doctor-sign">Doctor Sign</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CNIC Auto-Formatter function
+        function formatCNIC(input) {
+            // Remove any character that is not a digit
+            let val = input.value.replace(/\D/g, '');
+            let formatted = '';
+
+            // Apply the XXXXX-XXXXXXX-X format
+            if (val.length > 0) {
+                formatted = val.substring(0, 5);
+            }
+            if (val.length > 5) {
+                formatted += '-' + val.substring(5, 12);
+            }
+            if (val.length > 12) {
+                formatted += '-' + val.substring(12, 13);
+            }
+
+            // Set the formatted value back to the input
+            input.value = formatted;
+            
+            // Update the live preview
+            updatePreview();
+        }
+
+        function generateMRNo() {
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const random = Math.floor(100000 + Math.random() * 900000);
+            return `OPD-${month}-${year}-${random}`;
+        }
+
+        function getCurrentDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second:'2-digit', hour12: true });
+            return `${dateStr} ${timeStr}`;
+        }
+
+        let currentMRNO = "";
+        let currentDateTime = "";
+
+        function startNewSlip() {
+            document.getElementById('input_name').value = '';
+            document.getElementById('input_gender').value = 'Male';
+            document.getElementById('input_address').value = '';
+            document.getElementById('input_shift').value = 'Morning';
+            document.getElementById('input_age').value = '0';
+            document.getElementById('input_cnic').value = '';
+            document.getElementById('input_specialties').value = 'Dental';
+            document.getElementById('input_rx').value = '';
+            
+            currentMRNO = generateMRNo();
+            currentDateTime = getCurrentDateTime();
+            
+            updatePreview();
+        }
+
+        function updatePreview() {
+            document.getElementById('preview_name').innerText = document.getElementById('input_name').value;
+            document.getElementById('preview_gender').innerText = document.getElementById('input_gender').value;
+            document.getElementById('preview_address').innerText = document.getElementById('input_address').value;
+            document.getElementById('preview_shift').innerText = document.getElementById('input_shift').value;
+            document.getElementById('preview_age').innerText = document.getElementById('input_age').value;
+            document.getElementById('preview_cnic').innerText = document.getElementById('input_cnic').value;
+            document.getElementById('preview_specialties').innerText = document.getElementById('input_specialties').value;
+            document.getElementById('preview_rx').innerText = document.getElementById('input_rx').value;
+            
+            document.getElementById('preview_mrno').innerText = currentMRNO;
+            document.getElementById('preview_datetime').innerText = currentDateTime;
+        }
+
+        function saveAndPrint() {
+            const slipData = {
+                id: currentMRNO,
+                date: currentDateTime,
+                name: document.getElementById('input_name').value,
+                gender: document.getElementById('input_gender').value,
+                address: document.getElementById('input_address').value,
+                shift: document.getElementById('input_shift').value,
+                age: document.getElementById('input_age').value,
+                cnic: document.getElementById('input_cnic').value,
+                specialties: document.getElementById('input_specialties').value,
+                rx: document.getElementById('input_rx').value
+            };
+
+            if(slipData.name.trim() !== "") {
+                let history = JSON.parse(localStorage.getItem('opdHistory')) || [];
+                history = history.filter(item => item.id !== slipData.id); 
+                history.unshift(slipData); 
+                localStorage.setItem('opdHistory', JSON.stringify(history));
+                
+                document.getElementById('search_history').value = ''; 
+                renderHistory();
+            }
+
+            window.print();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const searchQuery = document.getElementById('search_history').value.toLowerCase();
+            list.innerHTML = '';
+            
+            let history = JSON.parse(localStorage.getItem('opdHistory')) || [];
+
+            const filteredHistory = history.filter(item => {
+                const searchName = item.name ? item.name.toLowerCase() : '';
+                const searchId = item.id ? item.id.toLowerCase() : '';
+                return searchName.includes(searchQuery) || searchId.includes(searchQuery);
+            });
+
+            if (filteredHistory.length === 0) {
+                list.innerHTML = `<div style="font-size:12px; color:#777; padding:10px;">No matching slips found.</div>`;
+                return;
+            }
+
+            filteredHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<strong>${item.name || 'Unnamed Patient'}</strong><br><small>${item.id}</small>`;
+                div.onclick = () => loadHistoryItem(item);
+                list.appendChild(div);
+            });
+        }
+
+        function loadHistoryItem(item) {
+            document.getElementById('input_name').value = item.name || '';
+            document.getElementById('input_gender').value = item.gender || 'Male';
+            document.getElementById('input_address').value = item.address || '';
+            document.getElementById('input_shift').value = item.shift || 'Morning';
+            document.getElementById('input_age').value = item.age || '0';
+            document.getElementById('input_cnic').value = item.cnic || '';
+            document.getElementById('input_specialties').value = item.specialties || 'Dental';
+            document.getElementById('input_rx').value = item.rx || '';
+            
+            currentMRNO = item.id;
+            currentDateTime = item.date;
+            
+            updatePreview();
+        }
+
+        window.onload = function() {
+            startNewSlip();
+            renderHistory();
+            
+            setInterval(function() {
+                if(document.getElementById('input_name').value.trim() === '') {
+                    currentDateTime = getCurrentDateTime();
+                    document.getElementById('preview_datetime').innerText = currentDateTime;
+                }
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
